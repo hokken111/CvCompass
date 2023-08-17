@@ -1,0 +1,709 @@
+/* * * * * * * */
+/*  VAR ET MIX */
+/* * * * * * * */
+
+	@import "compass/css3";
+	@import "compass/css3/selection";
+	@import "compass/css3/transform";
+	@import "compass/css3/transition";
+	@import "compass/css3/opacity";
+	@import "compass/css3/columns";
+	
+	@include font-face("BAUHS93", font-files("BAUHS93.ttf"));
+	@include font-face("Bunny", font-files("TideSans-600Bunny.ttf"));
+	@font-face {
+    font-family: "Kahuna";
+    src: url("TideSans-300LilKahuna.eot") format("eot"),
+         url("TideSans-300LilKahuna.ttf") format("ttf"),
+         url("TideSans-300LilKahuna.woff") format("woff"),
+         url("TideSans-300LilKahuna.svg") format("svg");
+	}
+
+	$size-h1 : 2.7rem;
+	$size-h2 : 1.45rem;
+	$size-h3 : 1.125rem;
+
+	$screen-width-pc : 1000px;
+	$screen-width-tablette : 800px;
+	$screen-width-smartphone : 550px;
+
+	$color-black-gen : #696566;
+	$color-black-light : #eaedf1;
+	$color-blue : #8dbcd0;
+	
+	@mixin transition($transitions...) {
+	  $default: (compact($default-transition-property $default-transition-duration $default-transition-function $default-transition-delay),);
+	  $transitions: if(length($transitions) == 1 and type-of(nth($transitions, 1)) == list and list-separator(nth($transitions, 1)) == comma, nth($transitions, 1), $transitions);
+	  $transitions: set-arglist-default($transitions, $default);
+	  @include with-each-prefix(css-transitions, $transition-support-threshold) {
+		$delays: comma-list();
+		$transitions-without-delays: comma-list();
+		$transitions-with-delays: comma-list();
+		$has-delays: false;
+		// This block can be made considerably simpler at the point in time that
+		// we no longer need to deal with the differences in how delays are treated.
+		@each $transition in $transitions {
+		  // Declare initial values for transition
+		  $transition: transition-map($transition);
+		  $property: map-get($transition, property);
+		  $duration: map-get($transition, duration);
+		  $timing-function: map-get($transition, timing-function);
+		  $delay: map-get($transition, delay);
+		  // Parse transition string to assign values into correct variables
+		  $has-delays: $has-delays or $delay;
+		  @if $current-prefix == -webkit {
+			// Keep a list of delays in case one is specified
+			$delays: append($delays, if($delay, $delay, 0s));
+			$transitions-without-delays: append($transitions-without-delays, prefixed-for-transition($current-prefix, $property) $duration $timing-function);
+		  }
+		  @else {
+			$transitions-with-delays: append($transitions-with-delays, prefixed-for-transition($current-prefix, $property) $duration $timing-function $delay);
+		  }
+		}
+		@if $current-prefix == -webkit {
+		  @include prefix-prop(transition, $transitions-without-delays);
+		  @if $has-delays {
+			@include prefix-prop(transition-delay, $delays);
+		  }
+		}
+		@else if $current-prefix {
+		  @include prefix-prop(transition, $transitions-with-delays);
+		}
+		@else {
+		  transition: $transitions-with-delays;
+		}
+	  }
+	}
+	
+	@mixin single-transition($property, $duration, $function, $delay) {
+	  @include transition(compact($property $duration $function $delay));
+	}
+	
+	@mixin transform($transform, $only3d: false) {
+	  $capability: if($only3d, transforms3d, transforms2d);
+	  @include prefixed-properties($capability, $transform-support-threshold, (transform: $transform));
+	}
+	
+	@mixin transform2d($trans) {
+	  @include transform($trans, false);
+	}
+
+	@mixin scale($scale-x, $scale-y, $perspective: false, $only3d: false) {
+	  $trans: scale($scale-x, $scale-y);
+	  @if $perspective {
+		$trans: perspective($perspective) $trans;
+	  }
+	  @include transform($trans, $only3d);
+	}
+	@mixin brique($width, $margin, $padding, $float) {
+		width: $width;
+		margin: $margin;
+		padding: $padding;
+		float: $float;
+	}
+
+	@mixin titre($fontsize, $fontfamily, $fontweight, $letterspacing) {
+		font-size: $fontsize;
+		font-family: $fontfamily;
+		letter-spacing: $letterspacing;
+		font-weight: $fontweight;
+	}
+	
+	@mixin selection($background-color: null, $color: contrast-color($background-color)) {
+	  @include with-each-prefix(css-selection, $selection-support-threshold) {
+		$selector: "";
+		@if $current-prefix != null {
+		  $selector: $current-prefix + "-";
+		}
+		$selector: "&::#{$selector}selection";
+		#{$selector} {
+		  color: $color;
+		  background-color: $background-color;
+		  @content;
+		}
+	  }
+	}
+	
+	@mixin border-radius($radius: $default-border-radius, $vertical-radius: false) {
+	  @include with-each-prefix(border-radius, $border-radius-threshold) {
+		@if $current-prefix == -webkit {
+		  // Legacy Webkit didn't understand the official shorthand syntax for specifying a vertical radius.
+		  $legacy-webkit-radius: first-value-of($radius);
+		  @if $vertical-radius {
+			$legacy-webkit-radius: append($legacy-webkit-radius, first-value-of($vertical-radius));
+		  }
+		  @include prefix-prop(border-radius, $legacy-webkit-radius);
+		}
+		@else {
+		  // Official syntax for everyone else
+		  @include prefix-prop(border-radius, if($vertical-radius, #{$radius} / #{$vertical-radius}, $radius));
+		}
+	  }
+	}
+	
+	@mixin box-shadow($shadow...) {
+	  $shadow: set-arglist-default($shadow, default-box-shadow());
+	  @include prefixed-properties(css-boxshadow, $box-shadow-support-threshold, (box-shadow: $shadow));
+	}
+	
+	@mixin opacity($opacity) {
+	  @include for-legacy-browser("ie", "8", $threshold: $opacity-usage-threshold) {
+		@if $opacity == 1 {
+		  filter: unquote("progid:DXImageTransform.Microsoft.Alpha(enabled=false)");
+		}
+		@else {
+		  filter: unquote("progid:DXImageTransform.Microsoft.Alpha(Opacity=#{round($opacity * 100)})");
+		}
+	  }
+	 
+	  opacity: $opacity;
+	}
+
+	@mixin column-count($count) {
+	  @include prefixed-properties(multicolumn, $multicolumn-support-threshold, (column-count: $count));
+	}
+	
+	@mixin column-gap($width) {
+	  @include prefixed-properties(multicolumn, $multicolumn-support-threshold, (column-gap: $width));
+	}
+
+	@mixin column-count($count) {
+	  @include prefixed-properties(multicolumn, $multicolumn-support-threshold, (column-count: $count));
+	}
+
+	@mixin break-inside($value: auto) {
+	  @include column-break(inside, $value);
+	}
+	
+/* * * * * * * */
+/*  STANDARD   */
+/* * * * * * * */
+
+	html, body, div, span, applet, object, iframe,
+	h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+	a, abbr, acronym, address, big, cite, code,
+	del, dfn, em, img, ins, kbd, q, s, samp,
+	small, strike, strong, sub, sup, tt, var,
+	b, u, i, center,
+	dl, dt, dd, ol, ul, li,
+	fieldset, form, label, legend,
+	table, caption, tbody, tfoot, thead, tr, th, td,
+	article, aside, canvas, details, embed,
+	figure, figcaption, footer, header, hgroup,
+	menu, nav, output, ruby, section, summary,
+	time, mark, audio, video {
+	  margin: 0;
+	  padding: 0;
+	  border: 0;
+	  font: inherit;
+	  vertical-align: baseline;
+	}
+
+	body{
+		font-family:  Arial, sans-serif;
+		color:$color-black-gen;
+		background:#2e2e2e url('img/fond-site.jpg') repeat;
+	}
+
+	html {
+	  line-height: 1;
+	  @media only screen and (min-width: $screen-width-pc) {font-size:100%;}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {font-size:80%;}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {font-size:70%;}
+	  @media only screen and (max-width: $screen-width-smartphone) {font-size:70%;}	
+	}
+
+	ol, ul {
+	  margin-left:1.2rem;
+	}
+
+	table {
+	  border-collapse: collapse;
+	  border-spacing: 0;
+	}
+
+	caption, th, td {
+	  text-align: left;
+	  font-weight: normal;
+	  vertical-align: middle;
+	}
+
+	a img {
+	  border: none;
+	}
+
+	article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section, summary {
+	  display: block;
+	}
+
+	p{
+		text-align: justify;
+		margin: 5px 0 5px 0;
+	}
+	
+	* {
+	  @include selection($color-blue, #fff);
+	  outline: 0;
+	}
+	
+	.pointer{cursor:pointer;}
+	
+	
+/* * * * * */
+/*  TITRES */
+/* * * * * */
+	
+	h1{
+		@include titre($size-h1, BAUHS93, normal, -3px);
+	}
+	
+	h2{
+		@include titre($size-h2, inherit, bold, -2px);
+	}
+	
+	h3{
+		@include titre($size-h3, bunny, normal, -1px);
+	}
+	
+	.col_brique_bl h3{
+		text-transform:uppercase;
+		margin-bottom:7px;
+		margin-top:5px;
+		&:first-letter{
+			color:$color-blue;
+		}
+	}
+	
+	.col_brique_br h3{
+		text-transform:uppercase;
+		display:inline;
+	}
+	
+	.col_brique_br h4{
+		font-family: bunny;
+		margin-bottom:10px;
+		color:$color-blue;
+	}
+
+	#qcq{
+		margin:5rem 0;
+		width:100%;
+		@include titre(5rem, bunny, bold, -3px);
+		text-align:center;
+	}
+	
+/* * * * * */
+/*  LIENS  */
+/* * * * * */
+  
+  a {
+    text-decoration: none;
+	color: inherit;
+    &:hover {
+      text-decoration: underline; 
+    }
+  }
+  
+  .cv_pdf:hover {
+	@include opacity(0.6);
+  }
+
+  .link-portfolio:hover {
+	@include opacity(0.6);
+  }
+
+  a#menu_cv, a#menu_portfolio {
+	padding:10px 0;
+	display:block;
+	text-decoration:none;
+	font-family: bunny;
+	font-size:1.5rem;
+	text-transform:uppercase;
+	letter-spacing:-1px;
+	max-width: 100%;
+	@include transition( font-size 0.5s ease, background 0.7s ease );	
+	
+    &:hover {
+      background:$color-blue;
+	  text-decoration:none;
+	  cursor:pointer;
+	  font-size:2rem; 
+    }
+    
+	&.active {
+      background:$color-blue;
+	  text-decoration:none;
+	  cursor:pointer;
+    }
+	
+	@media only screen and (min-width: $screen-width-pc) {height:90px;line-height:90px;}
+	@media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {height:70px;line-height:70px;}
+	@media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {height:60px;line-height:60px;}
+	@media only screen and (max-width: $screen-width-smartphone) {height:40px;line-height:40px;}		
+  }
+  
+	
+/* * * * * */
+/*  LAYOUT */
+/* * * * * */
+	
+	#abs{
+	  position:fixed;
+	  @media only screen and (min-width: $screen-width-tablette) {top:67px;left:10px;z-index:50;}
+	  @media only screen and (max-width: $screen-width-tablette) {font-size:40%;bottom:5px;right:10px;z-index:50;@include opacity(0.7);}	
+	  
+	  .qrcode{
+		@media only screen and (max-width: $screen-width-smartphone) {visibility:hidden;height:0;}
+	  }
+	}	
+	
+	#wrapper, #footer {
+	  @media only screen and (min-width: $screen-width-pc) {width:1000px;}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {width:800px;}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {width:540px;}
+	  @media only screen and (max-width: $screen-width-smartphone) {width:300px;}	
+	}	
+	
+	#wrapper {
+	  margin:0px auto 10px auto;
+	  background:$color-black-light;
+	  overflow:hidden;
+	}	
+	
+	#footer {
+	  text-align:right;
+	  margin:0px auto 35px auto;
+	  color:#AEAEAE;
+	}
+
+	
+/* * * * * */
+/*  BRIQUE */
+/* * * * * */
+	
+	#reseaux_sociaux{
+		margin:15px auto 0px auto;	
+	    @media only screen and (min-width: $screen-width-pc) {width:1000px;padding:10px;}
+	    @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {width:800px;padding:8px;}
+	    @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {width:540px;padding:6px;}
+	    @media only screen and (max-width: $screen-width-smartphone) {width:300px;padding:4px;}	
+		padding-bottom:0px;
+		
+		li{display:inline-block;}
+		
+		a{
+			width:32px;
+			height:32px;
+			display:block;
+			text-indent:-1000%;
+			overflow:hidden;
+			font-size:0;
+			@include transition( all,0.3s,ease, 0.3s);
+		}
+
+		.facebook{ 
+			background:url("img/simple-icons-master/icons/facebook/facebook-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/facebook/facebook-32.png"); 
+			}
+		}
+		.gmail{ 
+			background:url("img/simple-icons-master/icons/gmail/gmail-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/gmail/gmail-32.png"); 
+			}
+		}
+		.twitter{ 
+			background:url("img/simple-icons-master/icons/twitter/twitter-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/twitter/twitter-32.png"); 
+			}
+		}
+		.viadeo{ 
+			background:url("img/simple-icons-master/icons/viadeo/viadeo-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/viadeo/viadeo-32.png"); 
+			}
+		}
+		.youtube{ 
+			background:url("img/simple-icons-master/icons/youtube/youtube-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/youtube/youtube-32.png"); 
+			}
+		}
+		.github{ 
+			background:url("img/simple-icons-master/icons/github/github-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/github/github-32.png"); 
+			}
+		}
+		.wordpress{ 
+			background:url("img/simple-icons-master/icons/wordpress/wordpress-32-black.png"); 
+			&:hover{
+				background:url("img/simple-icons-master/icons/wordpress/wordpress-32.png"); 
+			}
+		}
+
+	}
+	
+	.brique{
+	  background:#ffffff;
+	  min-height:50px;
+	  text-align:justify;
+	  overflow:hidden;
+	  text-overflow: clip clip;
+	  word-wrap: break-word;
+	  
+		.content{
+		  @media only screen and (min-width: $screen-width-pc) {padding:10px;}
+		  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {padding:8px;}
+		  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {padding:6px;}
+		  @media only screen and (max-width: $screen-width-smartphone) {padding:4px;}	
+		}
+		
+		.content_wp{
+		  padding:0px;
+		}
+	}	
+	
+	.brique_tl{
+	  position:relative;
+	  @media only screen and (min-width: $screen-width-pc) {height:220px;@include brique(44%, 2% 1% 1% 2%, 0, left);}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {height:180px;@include brique(40%, 2% 1% 1% 2%, 0, left);}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {height:150px;@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	  @media only screen and (max-width: $screen-width-smartphone) {height:140px;@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	}
+	
+	.brique_tr{
+	  @media only screen and (min-width: $screen-width-pc) {@include brique(50%, 2% 2% 1% 1%, 0, left);}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {@include brique(54%,2% 2% 1% 1%, 0, left);}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	  @media only screen and (max-width: $screen-width-smartphone) {@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	}
+	
+	.col_brique_bl{
+	  @media only screen and (min-width: $screen-width-pc) {@include brique(22%, 1% 1% 2% 2%, 0, right);}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {@include brique(24%, 1% 1% 2% 2%, 0, right);}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {@include brique(96%, 1% 2% 1% 2%, 0, none);@include column-count(3);@include column-gap(1em);}
+	  @media only screen and (max-width: $screen-width-smartphone) {@include brique(96%, 1% 2% 1% 2%, 0, none);@include column-count(2);@include column-gap(1em);}
+				
+	  .brique_b{
+	    @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {margin-bottom: 1em;-webkit-column-break-inside: avoid;@include break-inside(avoid);}
+	    @media only screen and (max-width: $screen-width-smartphone) {margin-bottom: 1em;@include break-inside(avoid);}
+							
+	  }
+	}
+	
+	.col_brique_br{
+	  @media only screen and (min-width: $screen-width-pc) {@include brique(72%, 1% 2% 2% 1%, 0, right);}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {@include brique(70%, 1% 2% 2% 1%, 0, right);}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	  @media only screen and (max-width: $screen-width-smartphone) {@include brique(96%, 1% 2% 1% 2%, 0, none);}
+	  
+	  .brique_b{
+	    border-top:2px solid $color-blue;
+	    border-bottom:2px solid $color-blue;
+		  a{
+			text-decoration:underline;
+			&:hover {
+				color: $color-blue;
+			}
+		  }
+	  }
+	  
+	}	
+	
+	.brique_b{
+	  @media only screen and (min-width: $screen-width-pc) {margin-bottom:10px;}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {margin-bottom:10px;}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {margin-bottom:10px;}
+	  @media only screen and (max-width: $screen-width-smartphone) {margin-bottom:10px;}
+	}
+	
+	.pc33 {
+	  font-family: Bunny;
+	  width:100%;
+	  text-align:center;
+	  font-weight:bold;
+	  border-spacing:0px;
+	  border-collapse:separate;
+	  
+	  td {
+	    width:33.33%;
+		text-align:center;
+	  }
+	}
+	
+	.pc50 {
+	  @extend .pc33;
+	  
+	  td {
+	    overflow: hidden;
+	  }
+	}
+	
+	.w60{width:60px;text-align:right;}
+	.w100{width:100%;}
+	
+
+/* * * * * */
+/*  TAGS   */
+/* * * * * */
+
+	.tags li:hover { background:$color-blue;cursor:Default; } 
+	
+	.tags{
+		list-style:none;
+		width:100%;
+		margin:15px 0;
+		
+		li{
+			float:left;
+			font-family: Arial, sans-serif;
+			font-weight:bold;
+			background:$color-black-gen;
+			color:#fff;
+			text-decoration:none;
+			
+			@media only screen and (min-width: $screen-width-smartphone) {margin:3px 5px;padding:5px 8px;@include border-radius(4px, 4px);}
+			@media only screen and (max-width: $screen-width-smartphone) {margin:2px 3px;padding:3px 5px;@include border-radius(2px, 2px);}	
+	
+			&:hover {
+				background: $color-blue;
+			}
+		}
+	}
+	
+	
+/* * * * * */
+/*  AUTRE */
+/* * * * * */
+	
+	.img_profil{
+	  @media only screen and (min-width: $screen-width-pc) {width:130px;}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {width:95px;}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {width:95px;}
+	  @media only screen and (max-width: $screen-width-smartphone) {width:75px;}
+	}
+	
+	.icone_entete{
+		height:1rem;
+	}
+	
+	.bg_gc {background:#cdcdcd;color:#FFFFFF;}
+	.bg_gf {background:$color-black-gen;color:#FFFFFF;}
+	.c_gc {color:#AEAEAE;font-style:italic;}
+	
+	.cv_pdf, .qrcode{
+		background:#FFF;
+		margin-right:10px;		
+		border:5px solid #fff;
+		@include box-shadow(0px 0px 2px #666);
+		@include border-radius(5px, 5px);
+		display:block;
+		@media only screen and (min-width: $screen-width-pc) {width:100px;height:100px;}
+		@media only screen and (max-width: $screen-width-pc) {width:60px;height:60px;}
+	}
+	
+	.cpt_oui{
+	  @media only screen and (min-width: $screen-width-pc) {width:12px;}
+	  @media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {width:10px;}
+	  @media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {width:8px;}
+	  @media only screen and (max-width: $screen-width-smartphone) {width:6px;}	
+	}
+	
+	.clear{clear:both;}
+	.float_right{float:right;}
+	.padding_left_40{padding-left:40px;}
+	.padding_right_10{padding-right:10px;}
+	.display_none{display:none;}
+	.margin_bottom_30{margin-bottom:30px}
+	.margin_padding_zero{margin:0;padding:0;}
+	.div_pc33{position:absolute;bottom:0px;width:100%;}
+	.text_align_right{text-align:right;}
+	.width_100pc{width:100%}
+	
+/* * * * * * * */
+/*  PORTFOLIO  */
+/* * * * * * * */ 	
+	
+	.portfolio_presentation{
+		.bandeau_logo{
+			margin-left: 10px;
+			float: left;
+			.logo{
+				@include opacity(0.5);				
+				float:left;
+				@media only screen and (min-width: $screen-width-pc) {height:30px;margin-left:10px;}
+				@media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {height:30px;margin-left:10px;}
+				@media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {height:20px;margin-left:5px;}
+				@media only screen and (max-width: $screen-width-smartphone) {height:2px;margin-left:5px;}
+			}
+		}
+
+		.titre{
+			float: left;
+			@media only screen and (min-width: $screen-width-pc) {height:30px;line-height: 30px;@include titre($size-h3, bunny, normal, 0px);}
+			@media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {height:30px;line-height: 30px;@include titre($size-h3, bunny, normal, 0px);}
+			@media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {height:20px;line-height: 20px;@include titre($size-h3, bunny, normal, 0px);}
+			@media only screen and (max-width: $screen-width-smartphone) {height:20px;line-height: 20px;@include titre($size-h3, bunny, normal, 0px);}
+		}
+
+		.description{
+			padding: 10px 0;
+			clear: both;
+			.sous-titre{font-weight: bold;}
+			.text-italic{font-style: italic;}
+		}
+
+		img.screen{
+			width:100%;
+		}
+	}
+
+	#nportfolio{
+
+		margin:2% 0 20px 2%;
+    	display: flex;
+    	flex-wrap: wrap;
+			@media only screen and (max-width: $screen-width-smartphone) {align-items: center;flex-direction: column;}
+
+		
+		.element{
+			@media only screen and (min-width: $screen-width-pc) {width:213px;}
+			@media only screen and (min-width: $screen-width-tablette) and (max-width: $screen-width-pc) {width:233.33px;}
+			@media only screen and (min-width: $screen-width-smartphone) and (max-width: $screen-width-tablette) {width:232.8px;}
+			@media only screen and (max-width: $screen-width-smartphone) {width:233px;}
+
+			height:150px;	
+			margin:0 2% 10px 0;
+			overflow: hidden;
+			border: 6px solid #FFF;
+
+			.description{
+				display: none;
+				height: 150px;
+				background: #FFF;
+				@include opacity(0.8);
+				text-align: center;
+
+				h4{
+					@include titre($size-h2, bunny, normal, -1px);
+					width: 100%;
+				}
+
+				.bandeau_footer{padding: 10px 0 30px 0;}
+			}
+			
+		}
+
+		.portfolio-carzo{background: #FFFFFF url(../portfolio/carre/carzo.jpg) no-repeat center top;}
+		.portfolio-ccia{background: #FFFFFF url(../portfolio/carre/ccia.jpg) no-repeat center top;}
+		.portfolio-moncv{background: #FFFFFF url(../portfolio/carre/cv.jpg) no-repeat center top;}
+		.portfolio-msdw{background: #FFFFFF url(../portfolio/carre/msdw.jpg) no-repeat center top;}
+		.portfolio-databoxeco{background: #FFFFFF url(../portfolio/carre/databoxeco.jpg) no-repeat center top;}
+		.portfolio-madeinxenon{background: #FFFFFF url(../portfolio/carre/madeinxenon.jpg) no-repeat center top;}
+		.portfolio-rlm{background: #FFFFFF url(../portfolio/carre/RLM.jpg) no-repeat center top;}
+		.portfolio-bla{background: #FFFFFF url(../portfolio/carre/bla.jpg) no-repeat center left}
+
+	}
