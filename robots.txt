@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /compta/
+Disallow: /ftp/
+Disallow: /OLD/
